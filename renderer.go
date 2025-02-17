@@ -106,7 +106,7 @@ func (r *Renderer) renderAdmon(writer util.BufWriter, source []byte, node ast.No
 	// quoteType := ParseBlockQuoteType(node, source)
 	// quoteLevel := r.LevelMap.Level(node)
 	quoteType := Warn
-	quoteLevel := 2
+	quoteLevel := 0
 
 	if quoteLevel == 0 && entering && quoteType != None {
 		prefix := fmt.Sprintf("<ac:structured-macro ac:name=\"%s\"><ac:parameter ac:name=\"icon\">true</ac:parameter><ac:rich-text-body>\n", quoteType)
