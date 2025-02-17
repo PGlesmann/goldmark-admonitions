@@ -25,6 +25,7 @@ var AdmonitionAttributeFilter = html.GlobalAttributeFilter
 // nodes as (X)HTML.
 type Renderer struct {
 	Config
+	LevelMap BlockQuoteLevelMap
 }
 
 // RegisterFuncs implements NodeRenderer.RegisterFuncs .
@@ -96,17 +97,100 @@ func (classifier BlockQuoteClassifier) ClassifyingBlockQuote(literal string) Blo
 	return t
 }
 
+// ParseBlockQuoteType parses the first line of a blockquote and returns its type
+func ParseBlockQuoteType(node ast.Node, source []byte) BlockQuoteType {
+	var t = None
+	var legacyClassifier = LegacyBlockQuoteClassifier()
+	var ghAlertsClassifier = GHAlertsBlockQuoteClassifier()
+
+	countParagraphs := 0
+	_ = ast.Walk(node, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
+
+		if node.Kind() == ast.KindParagraph && entering {
+			countParagraphs += 1
+		}
+		// Type of block quote should be defined on the first blockquote line
+		if countParagraphs < 2 && entering {
+			if node.Kind() == ast.KindText {
+				n := node.(*ast.Text)
+				t = legacyClassifier.ClassifyingBlockQuote(string(n.Value(source)))
+				// If the node is a text node but classification returned none do not give up!
+				// Find the next two sibling nodes midNode and rightNode,
+				// 1. If both are also a text node
+				// 2. and the original node (node) text value is '['
+				// 3. and the rightNode text value is ']'
+				// It means with high degree of confidence that the original md doc contains a Github alert type of blockquote
+				// Classifying the next text type node (midNode) will confirm that.
+				if t == None {
+					midNode := node.NextSibling()
+
+					if midNode != nil && midNode.Kind() == ast.KindText {
+						rightNode := midNode.NextSibling()
+						midTextNode := midNode.(*ast.Text)
+						if rightNode != nil && rightNode.Kind() == ast.KindText {
+							rightTextNode := rightNode.(*ast.Text)
+							if string(n.Value(source)) == "[" && string(rightTextNode.Value(source)) == "]" {
+								t = ghAlertsClassifier.ClassifyingBlockQuote(string(midTextNode.Value(source)))
+							}
+						}
+					}
+				}
+				countParagraphs += 1
+			}
+			if node.Kind() == ast.KindHTMLBlock {
+
+				n := node.(*ast.HTMLBlock)
+				for i := 0; i < n.BaseBlock.Lines().Len(); i++ {
+					line := n.BaseBlock.Lines().At(i)
+					t = legacyClassifier.ClassifyingBlockQuote(string(line.Value(source)))
+					if t != None {
+						break
+					}
+				}
+				countParagraphs += 1
+			}
+		} else if countParagraphs > 1 && entering {
+			return ast.WalkStop, nil
+		}
+		return ast.WalkContinue, nil
+	})
+
+	return t
+}
+
+// GenerateBlockQuoteLevel walks a given node and returns a map of blockquote levels
+func GenerateBlockQuoteLevel(someNode ast.Node) BlockQuoteLevelMap {
+
+	// We define state variable that track BlockQuote level while we walk the tree
+	blockQuoteLevel := 0
+	blockQuoteLevelMap := make(map[ast.Node]int)
+
+	rootNode := someNode
+	for rootNode.Parent() != nil {
+		rootNode = rootNode.Parent()
+	}
+	_ = ast.Walk(rootNode, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
+		if node.Kind() == ast.KindBlockquote && entering {
+			blockQuoteLevelMap[node] = blockQuoteLevel
+			blockQuoteLevel += 1
+		}
+		if node.Kind() == ast.KindBlockquote && !entering {
+			blockQuoteLevel -= 1
+		}
+		return ast.WalkContinue, nil
+	})
+	return blockQuoteLevelMap
+}
+
 // renderBlockQuote will render a BlockQuote
 func (r *Renderer) renderAdmon(writer util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
-	// Initialize BlockQuote level map
-	// if r.LevelMap == nil {
-	// 	r.LevelMap = GenerateBlockQuoteLevel(node)
-	// }
+	//	Initialize BlockQuote level map
+	if r.LevelMap == nil {
+		r.LevelMap = GenerateBlockQuoteLevel(node)
+	}
 
-	// quoteType := ParseBlockQuoteType(node, source)
-	// quoteLevel := r.LevelMap.Level(node)
-	quoteType := Warn
-	quoteLevel := 0
+	quoteType := ParseBlockQuoteType(node, source)
+	quoteLevel := r.LevelMap.Level(node)
 
 	if quoteLevel == 0 && entering && quoteType != None {
 		prefix := fmt.Sprintf("<ac:structured-macro ac:name=\"%s\"><ac:parameter ac:name=\"icon\">true</ac:parameter><ac:rich-text-body>\n", quoteType)
