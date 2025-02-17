@@ -3,7 +3,7 @@ package admonitions_test
 import (
 	"os"
 
-	admonitions "github.com/stefanfritsch/goldmark-admonitions"
+	admonitions "github.com/PGlesmann/goldmark-admonitions"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/text"
 )

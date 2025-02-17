@@ -4,7 +4,7 @@ import (
 	"math/rand"
 	"os"
 
-	admonitions "github.com/stefanfritsch/goldmark-admonitions"
+	admonitions "github.com/PGlesmann/goldmark-admonitions"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/text"
 )
@@ -51,7 +51,7 @@ func Example_nested_indented() {
 	// admonition id. The seed keeps this repeatable, independently of the number
 	// of tests.
 	rand.Seed(1)
-	
+
 	src := []byte(`
 ## Hello
 
@@ -83,26 +83,26 @@ And this isn't.
 	markdown.Renderer().Render(os.Stdout, src, doc)
 
 	// Output:
-  // <h2>Hello</h2>
-  // <p>The following contains an id and a class</p>
-  // <div id="big-div" class="admonition adm-note add-border" data-admonition="0">
-  //   <div class="adm-title">This is a note</div>
-  //   <div class="adm-body">
-  // <p>And the content is indented.</p>
-  // <div class="admonition adm-danger" data-admonition="1">
-  //   <div class="adm-title">This is still in the note</div>
-  //   <div class="adm-body">
-  // <p>this is a deeper error</p>
-  //   </div>
-  // </div>
-  // <p>this is level 1 again</p>
-  // <div class="admonition adm-note" data-admonition="xPLDnJObCsNVlgTeMaPEZQle">
-  //   <div class="adm-title">This is another note</div>
-  //   <div class="adm-body">
-  // <p>in level 2</p>
-  //   </div>
-  // </div>
-  //   </div>
-  // </div>
-  // <p>And this isn't.</p>
+	// <h2>Hello</h2>
+	// <p>The following contains an id and a class</p>
+	// <div id="big-div" class="admonition adm-note add-border" data-admonition="0">
+	//   <div class="adm-title">This is a note</div>
+	//   <div class="adm-body">
+	// <p>And the content is indented.</p>
+	// <div class="admonition adm-danger" data-admonition="1">
+	//   <div class="adm-title">This is still in the note</div>
+	//   <div class="adm-body">
+	// <p>this is a deeper error</p>
+	//   </div>
+	// </div>
+	// <p>this is level 1 again</p>
+	// <div class="admonition adm-note" data-admonition="xPLDnJObCsNVlgTeMaPEZQle">
+	//   <div class="adm-title">This is another note</div>
+	//   <div class="adm-body">
+	// <p>in level 2</p>
+	//   </div>
+	// </div>
+	//   </div>
+	// </div>
+	// <p>And this isn't.</p>
 }

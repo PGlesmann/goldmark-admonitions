@@ -1,4 +1,4 @@
-module github.com/stefanfritsch/goldmark-admonitions
+module github.com/PGlesmann/goldmark-admonitions
 
 go 1.19
 
