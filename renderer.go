@@ -1,6 +1,7 @@
 package admonitions
 
 import (
+	"fmt"
 	"regexp"
 
 	"github.com/yuin/goldmark/ast"
@@ -28,7 +29,7 @@ type Renderer struct {
 
 // RegisterFuncs implements NodeRenderer.RegisterFuncs .
 func (r *Renderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
-	reg.Register(KindAdmonition, r.renderAdmonition)
+	reg.Register(KindAdmonition, r.renderAdmon)
 }
 
 // Define BlockQuoteType enum
@@ -93,6 +94,35 @@ func (classifier BlockQuoteClassifier) ClassifyingBlockQuote(literal string) Blo
 		t = Tip
 	}
 	return t
+}
+
+// renderBlockQuote will render a BlockQuote
+func (r *Renderer) renderAdmon(writer util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	// Initialize BlockQuote level map
+	// if r.LevelMap == nil {
+	// 	r.LevelMap = GenerateBlockQuoteLevel(node)
+	// }
+
+	// quoteType := ParseBlockQuoteType(node, source)
+	// quoteLevel := r.LevelMap.Level(node)
+	quoteType := Warn
+	quoteLevel := 2
+
+	if quoteLevel == 0 && entering && quoteType != None {
+		prefix := fmt.Sprintf("<ac:structured-macro ac:name=\"%s\"><ac:parameter ac:name=\"icon\">true</ac:parameter><ac:rich-text-body>\n", quoteType)
+		if _, err := writer.Write([]byte(prefix)); err != nil {
+			return ast.WalkStop, err
+		}
+		return ast.WalkContinue, nil
+	}
+	if quoteLevel == 0 && !entering && quoteType != None {
+		suffix := "</ac:rich-text-body></ac:structured-macro>\n"
+		if _, err := writer.Write([]byte(suffix)); err != nil {
+			return ast.WalkStop, err
+		}
+		return ast.WalkContinue, nil
+	}
+	return r.renderAdmonition(writer, source, node, entering)
 }
 
 func (r *Renderer) renderAdmonition(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
